@@ -1,0 +1,18 @@
+group 'my.thereisnospoon'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'scala'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.8'
+    compile 'org.mongodb:mongodb-driver:3.2.2'
+    compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.4.11'
+    compile group: 'com.typesafe.akka', name: 'akka-stream_2.11', version: '2.4.11'
+    compile group: 'com.typesafe.akka', name: 'akka-http-experimental_2.11', version: '2.4.11'
+
+    testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.0.0'
+}
