@@ -25,16 +25,21 @@ object GridFsClient {
   def retrieveChunksForFile(fileId: String): FindIterable[Document] =
     chunksCollection.find(Filters.eq("files_id", new ObjectId(fileId))).sort(ascending("n"))
 
-  def retrieveFileSize(fileId: String): Future[Long] = {
+  def retrieveFileSize(fileId: String): Future[Int] = {
 
-    val lengthRetrievePromise = Promise[Long]
+    val lengthRetrievePromise = Promise[Int]
 
     filesCollection.find(Filters.eq("_id", new ObjectId(fileId))).projection(include("length"))
       .first((res: Document, t: Throwable) => {
 
         Option(res) match {
-          case Some(document) => lengthRetrievePromise.success(document.getLong("length"))
-          case _ => lengthRetrievePromise.failure(t)
+          case Some(document) =>
+            println("Trying to retrieve length")
+            lengthRetrievePromise.success(document.getInteger("length"))
+            println("Promise fulfilled")
+          case _ =>
+            println("Marking promise as failed")
+            lengthRetrievePromise.failure(t)
         }
       })
 

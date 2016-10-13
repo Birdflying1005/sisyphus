@@ -18,8 +18,9 @@ object HttpEndpoint extends App {
   implicit val system = ActorSystem("streaming-system")
   implicit val materializer = ActorMaterializer()
 
-  def extractRange: PartialFunction[HttpHeader, ByteRange] = {
-    case Range(Bytes, range :: _) => range
+  def extractRange: PartialFunction[HttpHeader, Option[ByteRange]] = {
+    case Range(Bytes, range :: _) => Some(range)
+    case _ => None
   }
 
   val route =
@@ -31,16 +32,19 @@ object HttpEndpoint extends App {
     path("video" / """\w+""".r) {fileId =>
       get {
 
-        onComplete(GridFsClient.retrieveFileSize(fileId)) {
-          case Failure(ex) => complete(HttpResponse(status = StatusCodes.NotFound))
+        headerValuePF(extractRange) {range =>
 
-          case Success(fileLength) => {
-            val fileDataSource: Source[ByteString, _] = Source.fromGraph(new GridFsSource(fileId))
-            complete(HttpResponse(headers = List(`Accept-Ranges`(RangeUnits.Bytes)),
-              entity = HttpEntity(MediaType.video("webm", NotCompressible, "webm"), fileLength, fileDataSource)))
+          onComplete[Int](GridFsClient.retrieveFileSize(fileId)) {
+            case Failure(ex) => complete(HttpResponse(status = StatusCodes.NotFound))
+
+            case Success(fileLength) =>
+              println(s"Range header value: $range")
+              println(s"File length: $fileLength")
+              val fileDataSource: Source[ByteString, _] = Source.fromGraph(new GridFsSource(fileId))
+              complete(HttpResponse(headers = List(`Accept-Ranges`(RangeUnits.Bytes)),
+                entity = HttpEntity(MediaType.video("webm", NotCompressible, "webm"), contentLength = fileLength, fileDataSource)))
           }
         }
-
       }
     }
 

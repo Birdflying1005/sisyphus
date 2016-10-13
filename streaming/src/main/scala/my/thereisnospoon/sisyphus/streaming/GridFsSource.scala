@@ -15,16 +15,13 @@ class GridFsSource(private val fileId: String) extends GraphStage[SourceShape[By
 
     val chunks = GridFsClient.retrieveChunksForFile(fileId).iterator()
 
-    setHandler(out, new OutHandler {
-
-      override def onPull(): Unit = {
-        if (chunks.hasNext) {
-          val chunkData = chunks.next().get("data", classOf[Binary]).getData
-          push(out, ByteString(chunkData))
-        } else {
-          chunks.close()
-          completeStage()
-        }
+    setHandler(out, () => {
+      if (chunks.hasNext) {
+        val chunkData = chunks.next().get("data", classOf[Binary]).getData
+        push(out, ByteString(chunkData))
+      } else {
+        chunks.close()
+        completeStage()
       }
     })
   }
