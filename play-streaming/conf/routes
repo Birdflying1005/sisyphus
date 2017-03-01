@@ -1,0 +1,2 @@
+GET     /                  my.thereisnospoon.sisyphus.streaming.controllers.StreamingController.index()
+GET     /stream/:fileId    my.thereisnospoon.sisyphus.streaming.controllers.StreamingController.streamFile(fileId: String)
