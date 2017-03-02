@@ -17,7 +17,7 @@ class LocalSourceProvider @Inject() (configuration: Configuration) extends Sourc
 
   implicit val ioExecutionContext: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-  override def source(fileId: String, range: Range): Source[ByteString, Future[IOResult]] = {
+  override def source(fileId: String, range: (Long, Long)): Source[ByteString, Future[IOResult]] = {
     FileIO.fromPath(Paths.get(filesFolderPath, fileId))
   }
 
