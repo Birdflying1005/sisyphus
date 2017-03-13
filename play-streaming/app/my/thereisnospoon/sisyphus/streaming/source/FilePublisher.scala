@@ -42,9 +42,12 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
   }
 
   override def receive: Receive = {
-    case Request => readAndSignalNext()
-    case Continue => readAndSignalNext()
-    case Cancel => context.stop(self)
+    case Request(_) =>
+      readAndSignalNext()
+    case Continue =>
+      readAndSignalNext()
+    case Cancel =>
+      context.stop(self)
   }
 
   private def readAndSignalNext() = {
@@ -62,7 +65,7 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
       onNext(chunks.head)
       signalOnNext(chunks.tail)
     } else {
-      if (chunks.isEmpty && bytesLeftToRead > 0) {
+      if (chunks.isEmpty && bytesLeftToRead <= 0) {
         onCompleteThenStop()
       }
       chunks
@@ -77,7 +80,8 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
       val bytesRead = readDataFromChannel(startPosition)
       bytesRead match {
         case Int.MinValue => Vector.empty
-        case -1 => currentlyBufferedChunks // EOF reached
+        case -1 =>
+          currentlyBufferedChunks // EOF reached
         case _ =>
           buffer.flip()
           val chunk = ByteString(buffer)
