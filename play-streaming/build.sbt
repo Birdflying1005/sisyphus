@@ -6,4 +6,7 @@ scalaVersion := "2.11.8"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1"
+libraryDependencies ++= Seq(
+  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.0" % Test,
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % Test
+)

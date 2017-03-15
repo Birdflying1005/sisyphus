@@ -20,17 +20,17 @@ class StreamingController @Inject() (sourceProvider: SourceProvider) extends Con
     sourceProvider.getFileLength(fileId).map {fileLength =>
 
       val range: (Long, Long) = request.headers.get(RANGE).map {
-        case RangeHeaderPattern(start, null) => (start.toLong, fileLength)
+        case RangeHeaderPattern(start, null) => (start.toLong, fileLength - 1)
         case RangeHeaderPattern(start, end) => (start.toLong, end.toLong)
 
-      }.getOrElse((0L, fileLength))
+      }.getOrElse((0L, fileLength - 1))
 
       val (startOfRange, endOfRange) = range
       val dataSource = sourceProvider.source(fileId, range)
 
       Result(
         header = ResponseHeader(PARTIAL_CONTENT, Map.empty),
-        body = HttpEntity.Streamed(dataSource, Some(endOfRange - startOfRange), Some("video/webm"))
+        body = HttpEntity.Streamed(dataSource, Some(endOfRange - startOfRange + 1), Some("video/webm"))
       ).withHeaders(
         ACCEPT_RANGES -> "bytes",
         CONTENT_RANGE -> s"bytes $startOfRange-$endOfRange/$fileLength")

@@ -2,7 +2,6 @@ package my.thereisnospoon.sisyphus.streaming.source
 
 import java.io.{File, FileOutputStream}
 import java.nio.file.Paths
-import java.time.Instant
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -29,7 +28,7 @@ class FilePublisherTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     fileWithData = File.createTempFile("fp_test", ".data")
     val outputStream = new FileOutputStream(fileWithData)
-    val fileLength = 500000
+    val fileLength = Random.nextInt(1e5.toInt) + 10
     data = new Array[Byte](fileLength)
     Random.nextBytes(data)
     outputStream.write(data)
@@ -47,11 +46,11 @@ class FilePublisherTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   "FilePublisher" should "read and publish whole file when supplied range includes whole file" in {
 
     val pathToFile = Paths.get(fileWithData.getAbsolutePath)
-    val fileSource = Source.actorPublisher(FilePublisher.props(pathToFile, 0, data.length))
+    val fileSource: Source[ByteString, _] = Source.actorPublisher(FilePublisher.props(pathToFile, 0, data.length - 1))
     val future = fileSource.runWith(Sink.seq)
 
-    val readData = Await.result(future, 50.seconds)
-    readData should be eq data.toSeq
+    val readData: Seq[ByteString] = Await.result(future, 50.seconds)
+    asByteArray(readData) should equal(data)
   }
 
   it should "read and publish chunk of the file as per supplied bytes range" in {
@@ -66,7 +65,9 @@ class FilePublisherTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val future = fileSource.runWith(Sink.seq)
 
     val readData: Seq[ByteString] = Await.result(future, 3.seconds)
-    val d: Array[Byte] = readData.view.flatMap(_.toList).toArray
-    println(d.length)
+    asByteArray(readData) should equal(sliceOfData)
   }
+
+  private def asByteArray(seqOfByteStrings: Seq[ByteString]): Array[Byte] = seqOfByteStrings.view
+    .flatMap(_.toStream).toArray
 }

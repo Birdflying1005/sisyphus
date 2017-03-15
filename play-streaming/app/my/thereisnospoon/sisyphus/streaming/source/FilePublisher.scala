@@ -27,9 +27,12 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
   override def preStart(): Unit = {
     try {
       fileChannel = FileChannel.open(pathToFile, StandardOpenOption.READ)
-      bufferedChunks = readAhead(Vector.empty, Some(startByte))
+      fileChannel.position(startByte)
+      bufferedChunks = readAhead(Vector.empty)
     } catch {
-      case NonFatal(ex) => onErrorThenStop(ex)
+      case NonFatal(ex) =>
+        log.error(ex, "Got error reading data from file channel")
+        onErrorThenStop(ex)
     }
   }
 
@@ -53,7 +56,7 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
   private def readAndSignalNext() = {
 
     if (isActive) {
-      bufferedChunks = readAhead(signalOnNext(bufferedChunks), None)
+      bufferedChunks = readAhead(signalOnNext(bufferedChunks))
       if (isActive && totalDemand > 0) self ! Continue
     }
   }
@@ -73,11 +76,11 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
   }
 
   @tailrec
-  private def readAhead(currentlyBufferedChunks: Vector[ByteString], startPosition: Option[Long]): Vector[ByteString] = {
+  private def readAhead(currentlyBufferedChunks: Vector[ByteString]): Vector[ByteString] = {
 
-    if (currentlyBufferedChunks.size < chunksToBuffer) {
+    if (currentlyBufferedChunks.size < chunksToBuffer && bytesLeftToRead > 0) {
 
-      val bytesRead = readDataFromChannel(startPosition)
+      val bytesRead = readDataFromChannel()
       bytesRead match {
         case Int.MinValue => Vector.empty
         case -1 =>
@@ -88,8 +91,12 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
           buffer.clear()
 
           bytesLeftToRead -= bytesRead
-          val trimmedChunk = if (bytesLeftToRead >= 0) chunk else chunk.dropRight(bytesLeftToRead.toInt)
-          readAhead(currentlyBufferedChunks :+ trimmedChunk, None)
+          if (bytesLeftToRead < 0) {
+            val trimmedChunk = chunk.dropRight(math.abs(bytesLeftToRead.toInt))
+            currentlyBufferedChunks :+ trimmedChunk
+          } else {
+            readAhead(currentlyBufferedChunks :+ chunk)
+          }
       }
 
     } else {
@@ -97,15 +104,13 @@ class FilePublisher(pathToFile: Path, startByte: Long, endByte: Long) extends Ac
     }
   }
 
-  private def readDataFromChannel(startPosition: Option[Long]): Int = {
+  private def readDataFromChannel(): Int = {
     try {
-      startPosition match {
-        case Some(position) => fileChannel.read(buffer, position)
-        case None => fileChannel.read(buffer)
-      }
+      fileChannel.read(buffer)
     } catch {
       case NonFatal(ex) =>
         log.error(ex, "Got error reading data from file channel")
+        onErrorThenStop(ex)
         Int.MinValue
     }
   }
@@ -116,4 +121,5 @@ object FilePublisher {
   private case object Continue extends DeadLetterSuppression
 
   def props(path: Path, startByte: Long, endByte: Long): Props = Props(classOf[FilePublisher], path, startByte, endByte)
+    .withDispatcher("sisyphus.streaming.blocking-io-dispatcher")
 }
