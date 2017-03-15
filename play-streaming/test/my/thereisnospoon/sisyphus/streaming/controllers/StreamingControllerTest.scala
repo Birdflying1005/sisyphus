@@ -4,7 +4,7 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import my.thereisnospoon.sisyphus.streaming.source.SourceProvider
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Matchers, OneInstancePerTest}
 import play.api.http.{HeaderNames, Status}
 import play.api.mvc.{ResponseHeader, Result}
 import play.api.test.FakeRequest
@@ -12,27 +12,18 @@ import play.api.test.FakeRequest
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class StreamingControllerTest extends FlatSpec with MockFactory with BeforeAndAfter with Matchers {
+class StreamingControllerTest extends FlatSpec with OneInstancePerTest with MockFactory with Matchers {
 
   val fileId = "file"
   val fileLength = 100L
 
   val timeout = 1.second
 
-  var sourceProvider: SourceProvider = _
-  var testedController: StreamingController = _
+  val sourceProvider: SourceProvider = stub[SourceProvider]
+  (sourceProvider.getFileLength _).when(*).returns(Future.successful(fileLength))
+  (sourceProvider.source _).when(fileId, *).returns(Source.empty[ByteString])
 
-  before {
-    withExpectations {
-      sourceProvider = stub[SourceProvider]
-      (sourceProvider.getFileLength _).when(*).returns(Future.successful(fileLength))
-      (sourceProvider.source _).when(fileId, *).returns(Source.empty[ByteString])
-
-      println(sourceProvider.getFileLength(fileId))
-
-      testedController = new StreamingController(sourceProvider)
-    }
-  }
+  val testedController: StreamingController = new StreamingController(sourceProvider)
 
   "StreamingController" should "return whole file in response when no `Range` header in request" in {
 
