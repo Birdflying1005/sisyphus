@@ -14,7 +14,7 @@ class UploadServerTest extends FlatSpec with ScalatestRouteTest with Matchers {
       Map("filename" -> "some.webm")
     ))
 
-    Post("/upload", multipartForm) ~> UploadRoute.route ~> check {
+    Post("/upload", multipartForm) ~> new UploadRoute("/tmp").route ~> check {
       status shouldEqual StatusCodes.OK
       responseAs[String] shouldEqual "Done"
     }

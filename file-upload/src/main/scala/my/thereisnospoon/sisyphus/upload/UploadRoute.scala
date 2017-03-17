@@ -40,7 +40,7 @@ class UploadRoute(tempFilesFolder: String) {
                                     tempFilePath: Path): RunnableGraph[(Future[IOResult], Future[IOResult])] = {
 
     val localFileSink: Sink[ByteString, Future[IOResult]] = FileIO.toPath(tempFilePath)
-    val persistentStorageSink: Sink[ByteString, Future[IOResult]] = Sink.ignore
+    val persistentStorageSink: Sink[ByteString, Future[IOResult]] = null
 
     RunnableGraph.fromGraph(GraphDSL.create(
       localFileSink,
