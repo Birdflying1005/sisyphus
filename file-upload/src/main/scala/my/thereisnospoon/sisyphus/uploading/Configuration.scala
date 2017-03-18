@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus
+package my.thereisnospoon.sisyphus.uploading
 
 import com.typesafe.config.{Config, ConfigFactory}
 

@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.video
+package my.thereisnospoon.sisyphus.uploading.processing
 
 import java.io.{BufferedReader, InputStreamReader}
 import java.nio.file.{Files, Path, Paths}

@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.upload
+package my.thereisnospoon.sisyphus.uploading
 
 import akka.http.scaladsl.server.{HttpApp, Route}
 

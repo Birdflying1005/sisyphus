@@ -1,6 +1,6 @@
-package my.thereisnospoon.sisyphus.video
+package my.thereisnospoon.sisyphus.uploading.processing
 
-import my.thereisnospoon.sisyphus.Configuration
+import my.thereisnospoon.sisyphus.uploading.Configuration
 
 trait VideoProcessingComponent {
   this: Configuration =>

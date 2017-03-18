@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.upload
+package my.thereisnospoon.sisyphus.uploading
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, Multipart, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
