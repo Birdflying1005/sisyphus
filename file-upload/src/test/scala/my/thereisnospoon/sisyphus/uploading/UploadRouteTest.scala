@@ -2,8 +2,10 @@ package my.thereisnospoon.sisyphus.uploading
 
 import java.nio.file.Paths
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, Multipart, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
 import my.thereisnospoon.sisyphus.uploading.processing.dupchek.DuplicationCheckServiceComponent
@@ -16,7 +18,11 @@ import scala.concurrent.duration._
 class UploadRouteTest extends FlatSpec with ScalatestRouteTest with Matchers {
 
   val appContext = new ActorSystemComponent with Configuration with DuplicationCheckServiceComponent
-    with VideoProcessingComponent with UploadRouteComponent
+    with VideoProcessingComponent with UploadRouteComponent {
+
+    override val actorSystem: ActorSystem = system
+    override val actorMaterializer: ActorMaterializer = materializer
+  }
 
   val testVideoPath = Paths.get("../test.webm")
 

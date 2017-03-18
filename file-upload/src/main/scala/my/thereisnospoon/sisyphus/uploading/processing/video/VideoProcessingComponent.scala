@@ -26,7 +26,7 @@ trait VideoProcessingComponent {
       case _: IOException => Resume
     }
 
-    system.actorOf(FromConfig(supervisorStrategy = routerSupervisionStrategy).props(
+    actorSystem.actorOf(FromConfig(supervisorStrategy = routerSupervisionStrategy).props(
       VideoProcessingActor.props(videoProcessingService)), "videoProcessingRouter")
   }
 }
