@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.uploading.processing
+package my.thereisnospoon.sisyphus.uploading.processing.video
 
 import java.nio.file.{Files, Paths}
 
@@ -15,7 +15,10 @@ class VideoProcessingServiceTest extends FlatSpec with Matchers {
   }
 
   it should "create thumbnail for video" in {
-    val thumbnailPath = testedInstance.generateThumbnail(testVideoPath) match {case Some(path) => path}
+    val thumbnailPath = testedInstance.generateThumbnail(testVideoPath) match {
+      case Some(path) => path
+      case None => fail("Thumbnail wasn't generated")
+    }
     Files.exists(thumbnailPath) shouldBe true
     Files.delete(thumbnailPath)
   }

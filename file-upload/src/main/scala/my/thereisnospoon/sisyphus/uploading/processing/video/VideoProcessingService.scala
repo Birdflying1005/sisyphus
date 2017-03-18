@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.uploading.processing
+package my.thereisnospoon.sisyphus.uploading.processing.video
 
 import java.io.{BufferedReader, InputStreamReader}
 import java.nio.file.{Files, Path, Paths}
@@ -18,7 +18,7 @@ class VideoProcessingService(
 
   def generateThumbnail(pathToVideo: Path): Option[Path] = {
 
-    val name = pathToVideo.getFileName.toString.split("\\.")(0)
+    val name = pathToVideo.getFileName.toString
     val thumbnailPath = Paths.get(tempFolder, s"$name.png")
 
     val processBuilder = new ProcessBuilder(ffmpegLocation, "-i", pathToVideo.toString, "-s", "320x180", "-ss", "00:00:01",

@@ -1,9 +1,9 @@
-package my.thereisnospoon.sisyphus.uploading.processing
+package my.thereisnospoon.sisyphus.uploading.processing.dupchek
 
 import java.security.MessageDigest
 
-import akka.stream.{Attributes, Inlet, SinkShape}
 import akka.stream.stage.{GraphStageLogic, GraphStageWithMaterializedValue, InHandler}
+import akka.stream.{Attributes, Inlet, SinkShape}
 import akka.util.ByteString
 import org.apache.commons.codec.binary.Hex
 

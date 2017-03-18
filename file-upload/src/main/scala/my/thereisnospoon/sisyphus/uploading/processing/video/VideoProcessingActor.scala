@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.uploading.processing
+package my.thereisnospoon.sisyphus.uploading.processing.video
 
 import java.nio.file.Path
 

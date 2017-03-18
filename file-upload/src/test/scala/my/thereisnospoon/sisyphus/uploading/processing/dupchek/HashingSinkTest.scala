@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.uploading.processing
+package my.thereisnospoon.sisyphus.uploading.processing.dupchek
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
