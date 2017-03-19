@@ -2,18 +2,17 @@ package my.thereisnospoon.sisyphus.uploading
 
 import java.nio.file.{Files, Path, Paths}
 
-import akka.pattern.ask
 import akka.Done
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.pattern.ask
 import akka.stream._
 import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.stream.scaladsl.{Broadcast, FileIO, GraphDSL, RunnableGraph, Sink, Source}
 import akka.util.{ByteString, Timeout}
 import my.thereisnospoon.sisyphus.uploading.processing.dupchek.{DuplicationCheckService, HashingSink}
-import my.thereisnospoon.sisyphus.uploading.processing.video.VideoProcessingActor.{ProcessVideo, ProcessingResult, VideoProcessingError}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,12 +52,16 @@ class UploadRoute(
               onSuccess(hashFuture.flatMap(duplicationCheckService.doesAlreadyExist)) { (videoExists: Boolean) =>
 
                 if (videoExists) {
+                  cleanUp(tempFilePath)
                   complete(StatusCodes.BadRequest, "Video already exists")
                 } else {
+
+                  import my.thereisnospoon.sisyphus.uploading.processing.video.VideoProcessingActor._
+
                   onSuccess(mapIOResultFuture(localIO).flatMap(_ => videoProcessor ? ProcessVideo(tempFilePath))) {
 
                     case VideoProcessingError =>
-                      complete(StatusCodes.InternalServerError, "Error during video processing")
+                      throw new IllegalStateException("Error during video processing")
 
                     case ProcessingResult(thumbnailPath, duration) =>
 
@@ -110,6 +113,7 @@ class UploadRoute(
     }
   }
 
+  // ToDo: Move to io dispatcher
   private def cleanUp(tempFilePath: Path) = {
 
     //ToDo: Add cleanup of S3
