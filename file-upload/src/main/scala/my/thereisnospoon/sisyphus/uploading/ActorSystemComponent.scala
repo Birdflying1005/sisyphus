@@ -5,6 +5,6 @@ import akka.stream.ActorMaterializer
 
 trait ActorSystemComponent {
 
-  implicit val actorSystem: ActorSystem
-  implicit val actorMaterializer: ActorMaterializer
+  implicit val actorSystem: ActorSystem = ActorSystem("upload-system")
+  implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
 }

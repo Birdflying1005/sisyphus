@@ -1,13 +1,13 @@
 package my.thereisnospoon.sisyphus.uploading
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import akka.pattern.ask
 import akka.Done
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.stream._
 import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.stream.scaladsl.{Broadcast, FileIO, GraphDSL, RunnableGraph, Sink, Source}
@@ -44,24 +44,31 @@ class UploadRoute(
 
             val (localIO, persistentStorageIO, hashFuture) = graph.run()
 
-            onSuccess(hashFuture.flatMap(duplicationCheckService.doesAlreadyExist)) {(videoExists: Boolean) =>
+            handleExceptions(ExceptionHandler {
+              case _: Exception =>
+                cleanUp(tempFilePath)
+                complete(StatusCodes.InternalServerError)
 
-              if (videoExists) {
-                complete(StatusCodes.BadRequest, "Video already exists")
-              } else {
-                onSuccess(mapIOResultFuture(localIO).flatMap(_ => videoProcessor ? ProcessVideo(tempFilePath))) {
+            }) {
+              onSuccess(hashFuture.flatMap(duplicationCheckService.doesAlreadyExist)) { (videoExists: Boolean) =>
 
-                  case VideoProcessingError =>
-                    complete(StatusCodes.InternalServerError, "Error during video processing")
+                if (videoExists) {
+                  complete(StatusCodes.BadRequest, "Video already exists")
+                } else {
+                  onSuccess(mapIOResultFuture(localIO).flatMap(_ => videoProcessor ? ProcessVideo(tempFilePath))) {
 
-                  case ProcessingResult(thumbnailPath, duration) =>
+                    case VideoProcessingError =>
+                      complete(StatusCodes.InternalServerError, "Error during video processing")
 
+                    case ProcessingResult(thumbnailPath, duration) =>
 
-                    //ToDo: Send thumbnail to S3 and metadata to kafka
-                    onSuccess(mapIOResultFuture(persistentStorageIO)) {_ =>
-                      complete(StatusCodes.OK)
-                      //ToDo: Add clean up and error handling
-                    }
+                      //ToDo: Send thumbnail to S3 and metadata to kafka
+                      onSuccess(mapIOResultFuture(persistentStorageIO)) { _ =>
+
+                        cleanUp(tempFilePath)
+                        complete(StatusCodes.OK)
+                      }
+                  }
                 }
               }
             }
@@ -101,5 +108,13 @@ class UploadRoute(
       case IOResult(_, Success(_)) => Future.successful(Done)
       case IOResult(_, Failure(ex)) => Future.failed(ex)
     }
+  }
+
+  private def cleanUp(tempFilePath: Path) = {
+
+    //ToDo: Add cleanup of S3
+    val thumbnailPath = Paths.get(tempFilePath.toString + ".png")
+    Files.deleteIfExists(tempFilePath)
+    Files.deleteIfExists(thumbnailPath)
   }
 }
