@@ -41,7 +41,7 @@ class UploadRouteTest extends FlatSpec with ScalatestRouteTest with Matchers wit
     override lazy val config: Config = {
 
       val config = ConfigFactory.load()
-      val testConfig = ConfigFactory.parseMap(Map("sisyphus.upload.tempFilesFolder" -> tempFolder.toString).asJava)
+      val testConfig = ConfigFactory.parseMap(Map("sisyphus.upload.temp-files-folder" -> tempFolder.toString).asJava)
       testConfig.withFallback(config)
     }
   }

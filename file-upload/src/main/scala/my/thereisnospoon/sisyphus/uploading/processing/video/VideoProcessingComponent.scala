@@ -14,9 +14,9 @@ trait VideoProcessingComponent {
 
     val uploadConfig = config.getConfig("sisyphus.upload")
     new VideoProcessingService(
-      uploadConfig.getString("tempFilesFolder"),
-      uploadConfig.getString("ffmpegPath"),
-      uploadConfig.getString("ffprobePath")
+      uploadConfig.getString("temp-files-folder"),
+      uploadConfig.getString("ffmpeg-path"),
+      uploadConfig.getString("ffprobe-path")
     )
   }
 
@@ -27,6 +27,6 @@ trait VideoProcessingComponent {
     }
 
     actorSystem.actorOf(FromConfig(supervisorStrategy = routerSupervisionStrategy).props(
-      VideoProcessingActor.props(videoProcessingService)), "videoProcessingRouter")
+      VideoProcessingActor.props(videoProcessingService)), "video-processing-router")
   }
 }

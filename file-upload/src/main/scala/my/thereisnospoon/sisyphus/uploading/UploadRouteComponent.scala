@@ -7,7 +7,7 @@ trait UploadRouteComponent {
   this: ActorSystemComponent with Configuration with VideoProcessingComponent with DuplicationCheckServiceComponent =>
 
   lazy val uploadRoute: UploadRoute = {
-    val tempFolder = config.getString("sisyphus.upload.tempFilesFolder")
+    val tempFolder = config.getString("sisyphus.upload.temp-files-folder")
     new UploadRoute(tempFolder, duplicationCheckService, videoProcessingRouter)
   }
 }
