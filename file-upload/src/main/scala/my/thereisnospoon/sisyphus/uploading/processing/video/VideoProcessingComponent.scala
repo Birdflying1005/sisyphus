@@ -15,8 +15,8 @@ trait VideoProcessingComponent {
     val uploadConfig = config.getConfig("sisyphus.upload")
     new VideoProcessingService(
       uploadConfig.getString("temp-files-folder"),
-      uploadConfig.getString("ffmpeg-path"),
-      uploadConfig.getString("ffprobe-path")
+      uploadConfig.getString("video-processing.ffmpeg-path"),
+      uploadConfig.getString("video-processing.ffprobe-path")
     )
   }
 

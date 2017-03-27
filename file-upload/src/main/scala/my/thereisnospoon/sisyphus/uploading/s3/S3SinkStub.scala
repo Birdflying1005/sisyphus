@@ -1,4 +1,4 @@
-package my.thereisnospoon.sisyphus.uploading
+package my.thereisnospoon.sisyphus.uploading.s3
 
 import akka.Done
 import akka.stream._

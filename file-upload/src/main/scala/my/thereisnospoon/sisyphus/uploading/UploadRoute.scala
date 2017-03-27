@@ -13,6 +13,7 @@ import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.stream.scaladsl.{Broadcast, FileIO, GraphDSL, RunnableGraph, Sink, Source}
 import akka.util.{ByteString, Timeout}
 import my.thereisnospoon.sisyphus.uploading.processing.dupchek.{DuplicationCheckService, HashingSink}
+import my.thereisnospoon.sisyphus.uploading.s3.S3SinkStub
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
