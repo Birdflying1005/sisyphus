@@ -9,11 +9,12 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.pattern.ask
 import akka.stream._
+import akka.stream.alpakka.s3.scaladsl.MultipartUploadResult
 import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.stream.scaladsl.{Broadcast, FileIO, GraphDSL, RunnableGraph, Sink, Source}
 import akka.util.{ByteString, Timeout}
 import my.thereisnospoon.sisyphus.uploading.processing.dupchek.{DuplicationCheckService, HashingSink}
-import my.thereisnospoon.sisyphus.uploading.s3.S3SinkStub
+import my.thereisnospoon.sisyphus.uploading.s3.S3SinkProvider
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,7 +23,8 @@ import scala.util.{Failure, Success}
 class UploadRoute(
                    tempFilesFolder: String,
                    duplicationCheckService: DuplicationCheckService,
-                   videoProcessor: ActorRef) {
+                   videoProcessor: ActorRef,
+                   s3SinkProvider: S3SinkProvider) {
 
   implicit val timeout: Timeout = 5.seconds
 
@@ -39,8 +41,8 @@ class UploadRoute(
             val tempFileName = java.util.UUID.randomUUID().toString
             val tempFilePath = Paths.get(tempFilesFolder, tempFileName)
 
-            val graph: RunnableGraph[(Future[IOResult], Future[IOResult], Future[String])] =
-              uploadProcessingGraph(byteSource, tempFilePath)
+            val graph: RunnableGraph[(Future[IOResult], Future[MultipartUploadResult], Future[String])] =
+              uploadProcessingGraph(byteSource, tempFilePath, tempFileName)
 
             val (localIO, persistentStorageIO, hashFuture) = graph.run()
 
@@ -59,6 +61,9 @@ class UploadRoute(
 
                   import my.thereisnospoon.sisyphus.uploading.processing.video.VideoProcessingActor._
 
+                  val videoProcessing = mapIOResultFuture(localIO)
+                    .flatMap(_ => videoProcessor ? ProcessVideo(tempFilePath))
+
                   onSuccess(mapIOResultFuture(localIO).flatMap(_ => videoProcessor ? ProcessVideo(tempFilePath))) {
 
                     case VideoProcessingError =>
@@ -67,7 +72,7 @@ class UploadRoute(
                     case ProcessingResult(thumbnailPath, duration) =>
 
                       //ToDo: Send thumbnail to S3 and metadata to kafka
-                      onSuccess(mapIOResultFuture(persistentStorageIO)) { _ =>
+                      onSuccess(persistentStorageIO) { _ =>
 
                         cleanUp(tempFilePath)
                         complete(StatusCodes.OK)
@@ -83,11 +88,12 @@ class UploadRoute(
 
   private def uploadProcessingGraph(
                                      byteSource: Source[ByteString, Any],
-                                     tempFilePath: Path
-                                   ): RunnableGraph[(Future[IOResult], Future[IOResult], Future[String])] = {
+                                     tempFilePath: Path,
+                                     videoKey: String
+                                   ): RunnableGraph[(Future[IOResult], Future[MultipartUploadResult], Future[String])] = {
 
     val localFileSink: Sink[ByteString, Future[IOResult]] = FileIO.toPath(tempFilePath)
-    val persistentStorageSink: Sink[ByteString, Future[IOResult]] = Sink.fromGraph(new S3SinkStub)
+    val persistentStorageSink: Sink[ByteString, Future[MultipartUploadResult]] = s3SinkProvider.getSinkForVideo(videoKey)
     val hashingSink: Sink[ByteString, Future[String]] = Sink.fromGraph(new HashingSink)
 
     RunnableGraph.fromGraph(GraphDSL.create(

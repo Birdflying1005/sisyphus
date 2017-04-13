@@ -1,21 +1,23 @@
 package my.thereisnospoon.sisyphus.uploading.s3
 
-import akka.Done
+import akka.http.scaladsl.model.Uri
 import akka.stream._
+import akka.stream.alpakka.s3.scaladsl.MultipartUploadResult
 import akka.stream.stage.{GraphStageLogic, GraphStageWithMaterializedValue, InHandler}
 import akka.util.ByteString
 
 import scala.concurrent.{Future, Promise}
-import scala.util.Success
 
-class S3SinkStub extends GraphStageWithMaterializedValue[SinkShape[ByteString], Future[IOResult]] {
+class S3SinkStub extends GraphStageWithMaterializedValue[SinkShape[ByteString], Future[MultipartUploadResult]] {
 
   val in: Inlet[ByteString] = Inlet[ByteString]("S3SinkStub.in")
   val shape: SinkShape[ByteString] = SinkShape.of(in)
 
-  override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): (GraphStageLogic, Future[IOResult]) = {
+  type StageLogicAndMaterialization = (GraphStageLogic, Future[MultipartUploadResult])
 
-    val promise = Promise[IOResult]
+  override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): StageLogicAndMaterialization  = {
+
+    val promise = Promise[MultipartUploadResult]
 
     val logic = new GraphStageLogic(shape) {
 
@@ -26,7 +28,7 @@ class S3SinkStub extends GraphStageWithMaterializedValue[SinkShape[ByteString], 
           grab(in)
           pull(in)
         }
-        override def onUpstreamFinish(): Unit = promise.success(IOResult(0, Success(Done)))
+        override def onUpstreamFinish(): Unit = promise.success(MultipartUploadResult(Uri(""), "", "", ""))
       })
     }
 
