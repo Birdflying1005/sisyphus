@@ -1,0 +1,3 @@
+package my.thereisnospoon.sisyphus.uploading.processing.dupchek
+
+class NonUniqueVideoException extends RuntimeException

@@ -90,8 +90,9 @@ class UploadRouteTest
   it should "return BadRequest response in case non-uniqueness of uploaded file and cleanup temp file" in {
 
     val duplicationCheckService = new DuplicationCheckService {
-      override def doesAlreadyExist(fileHash: String): Future[Boolean] =
+      override def doesAlreadyExist(fileHash: String): Future[Boolean] = {
         Future.successful(true)
+      }
     }
 
     val erroneousRoute =
