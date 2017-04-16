@@ -7,7 +7,7 @@ import scala.concurrent.Future
 
 trait SourceProvider {
 
-  def source(fileId: String, range: (Long, Long)): Source[ByteString, _]
+  def source(fileId: String, range: (Long, Long)): Source[ByteString, Any]
 
   def getFileLength(fileId: String): Future[Long]
 }

@@ -14,7 +14,7 @@ class LocalSourceProvider(filesFolderPath: String, system: ActorSystem) extends 
   implicit val ioExecutionContext: ExecutionContext =
     system.dispatchers.lookup("sisyphus.streaming.blocking-io-dispatcher")
 
-  override def source(fileId: String, range: (Long, Long)): Source[ByteString, _] = {
+  override def source(fileId: String, range: (Long, Long)): Source[ByteString, Any] = {
 
     val (start, end) = range
     Source.actorPublisher[ByteString](FilePublisher.props(Paths.get(filesFolderPath, fileId), start, end))
