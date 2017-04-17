@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import akka.Done
 import akka.actor.ActorRef
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
@@ -62,7 +62,7 @@ class UploadRoute(
             onComplete(processingFuture) {
               case Success(_) =>
                 cleanUp(tempFileName)
-                complete(StatusCodes.OK)
+                complete(HttpResponse(entity = HttpEntity(tempFileName)))
               case Failure(ex) => ex match {
                 case _: NonUniqueVideoException => complete(StatusCodes.BadRequest, "Video already exists")
                 case _ => complete(StatusCodes.InternalServerError)

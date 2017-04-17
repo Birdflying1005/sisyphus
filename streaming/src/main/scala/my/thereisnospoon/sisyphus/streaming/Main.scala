@@ -20,5 +20,5 @@ object Main extends App {
   val host = config.getString("sisyphus.streaming.server.host")
   val port = config.getInt("sisyphus.streaming.server.port")
 
-  val bindingFuture = Http().bindAndHandle(route, host, port)
+  Http().bindAndHandle(route, host, port)
 }

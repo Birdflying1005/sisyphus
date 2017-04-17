@@ -65,10 +65,11 @@ class UploadRouteTest
     }
   }
 
-  "/upload endpoint" should "receive file, return 200 response and clean up temp files after processing" in {
+  "/upload endpoint" should "receive file, return 200 response with fileId and clean up temp files after processing" in {
 
     Post("/upload", multipartForm) ~> appContext.uploadRoute.route ~> check {
       status shouldEqual StatusCodes.OK
+      entityAs[String] should not equal ""
     }
 
     Files.list(tempFolder).count() shouldBe 0
