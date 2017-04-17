@@ -12,5 +12,6 @@ libraryDependencies ++= Seq(
 
   "com.typesafe.akka" %% "akka-http-testkit" % "10.0.4" % Test,
   "org.scalatest" %% "scalatest" % "3.0.1" % Test,
-  "org.mockito" % "mockito-all" % "1.10.19" % Test
+  "org.mockito" % "mockito-all" % "1.10.19" % Test,
+  "com.github.tomakehurst" % "wiremock" % "2.5.1" % Test
 )

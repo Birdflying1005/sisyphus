@@ -13,7 +13,7 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.Future
 
-class StreamingServerTest extends FlatSpec with ScalatestRouteTest with Matchers {
+class StreamingRouteTest extends FlatSpec with ScalatestRouteTest with Matchers {
 
   val fileId = "file"
   val fileLength = 100L
@@ -27,9 +27,9 @@ class StreamingServerTest extends FlatSpec with ScalatestRouteTest with Matchers
     provider
   }
 
-  val streamingRoute = new StreamingServer(sourceProvider).route
+  val streamingRoute = new StreamingRoute(sourceProvider).route
 
-  "streaming server" should "return whole file in response when no `Range` header in request" in {
+  "streaming route" should "return whole file in response when no `Range` header in request" in {
 
     Get(getUrl) ~> streamingRoute ~> check {
       headers.find(_.is("content-range")).get shouldEqual `Content-Range`(ContentRange(0, fileLength - 1, fileLength))

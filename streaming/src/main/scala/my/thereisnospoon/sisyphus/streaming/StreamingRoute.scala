@@ -1,13 +1,14 @@
 package my.thereisnospoon.sisyphus.streaming
 
-import akka.http.scaladsl.model.headers.ByteRange.{FromOffset, Slice, Suffix}
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.ByteRange.{FromOffset, Slice, Suffix}
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server.{HttpApp, Route}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import com.typesafe.scalalogging.LazyLogging
 import my.thereisnospoon.sisyphus.streaming.source.SourceProvider
 
-class StreamingServer(sourceProvider: SourceProvider) extends HttpApp with LazyLogging {
+class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
 
   private val extractRange: HttpHeader => Option[ByteRange] = {
     case h: Range => Some(h.ranges.head)
