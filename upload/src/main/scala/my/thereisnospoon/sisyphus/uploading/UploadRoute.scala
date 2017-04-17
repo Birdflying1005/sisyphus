@@ -45,6 +45,8 @@ class UploadRoute(
             val tempFileName = java.util.UUID.randomUUID().toString
             val tempFilePath = Paths.get(tempFilesFolder, tempFileName)
 
+            log.debug(s"Starting file upload $tempFileName")
+
             val graph: RunnableGraph[(Future[IOResult], Future[MultipartUploadResult], Future[String])] =
               uploadGraph(byteSource, tempFilePath, tempFileName)
 
@@ -79,7 +81,7 @@ class UploadRoute(
                          ): RunnableGraph[(Future[IOResult], Future[MultipartUploadResult], Future[String])] = {
 
     val localFileSink = FileIO.toPath(tempFilePath)
-    val persistentStorageSink = s3SinkProvider.getSinkForVideo(videoKey)
+    val persistentStorageSink = s3SinkProvider.getSinkForS3(videoKey)
     val hashingSink = Sink.fromGraph(new HashingSink)
 
     RunnableGraph.fromGraph(GraphDSL.create(

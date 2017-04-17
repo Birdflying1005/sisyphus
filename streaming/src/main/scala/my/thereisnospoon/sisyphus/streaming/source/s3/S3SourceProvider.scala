@@ -10,12 +10,13 @@ import akka.stream.alpakka.s3.scaladsl.S3Client
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import my.thereisnospoon.sisyphus.streaming.source.SourceProvider
 
 import scala.concurrent.Future
 
 class S3SourceProvider(config: Config)(implicit actorSystem: ActorSystem, materializer: ActorMaterializer)
-    extends SourceProvider {
+    extends SourceProvider with LazyLogging {
 
   private implicit val executionContext = actorSystem.dispatcher
 
@@ -53,9 +54,13 @@ class S3SourceProvider(config: Config)(implicit actorSystem: ActorSystem, materi
   }
 
   //ToDo: Needs to replaced with HEAD request and getting `Content-Length` when using real S3
-  override def getFileLength(fileId: String): Future[Long] =
+  override def getFileLength(fileId: String): Future[Long] = {
+
+    logger.debug(s"Making request for length to $bucketUri/$fileId")
+
     for (response <- Http().singleRequest(HttpRequest(HttpMethods.PATCH, s"$bucketUri/$fileId")))
       yield response.headers.find(_.is("contentlength")).get.value.toLong
+  }
 
   override def source(fileId: String, range: (Long, Long)): Source[ByteString, Any] = {
     val (start, end) = range

@@ -12,7 +12,7 @@ trait S3Component {this: Configuration with ActorSystemComponent =>
   }
 
   lazy val s3SinkProvider: S3SinkProvider = {
-    val s3BucketsConfig = config.getConfig("sisyphus.upload.s3.buckets")
-    new RealS3SinkProvider(s3BucketsConfig.getString("video"), s3BucketsConfig.getString("thumbnails"), s3Client)
+    val bucket = config.getString("sisyphus.upload.s3.bucket")
+    new RealS3SinkProvider(bucket, s3Client)
   }
 }

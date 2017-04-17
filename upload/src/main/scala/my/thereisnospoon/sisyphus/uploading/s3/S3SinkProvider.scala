@@ -8,7 +8,5 @@ import scala.concurrent.Future
 
 trait S3SinkProvider {
 
-  def getSinkForVideo(key: String): Sink[ByteString, Future[MultipartUploadResult]]
-
-  def getSinkForThumbnail(key: String): Sink[ByteString, Future[MultipartUploadResult]]
+  def getSinkForS3(key: String): Sink[ByteString, Future[MultipartUploadResult]]
 }

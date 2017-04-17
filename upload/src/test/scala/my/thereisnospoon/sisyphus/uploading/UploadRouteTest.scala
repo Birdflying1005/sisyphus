@@ -57,10 +57,7 @@ class UploadRouteTest
 
     override lazy val s3SinkProvider = new S3SinkProvider {
 
-      override def getSinkForVideo(key: String): Sink[ByteString, Future[MultipartUploadResult]] =
-        Sink.fromGraph(new S3SinkStub)
-
-      override def getSinkForThumbnail(key: String): Sink[ByteString, Future[MultipartUploadResult]] =
+      override def getSinkForS3(key: String): Sink[ByteString, Future[MultipartUploadResult]] =
         Sink.fromGraph(new S3SinkStub)
     }
   }

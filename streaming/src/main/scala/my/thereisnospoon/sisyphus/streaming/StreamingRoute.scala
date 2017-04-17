@@ -19,7 +19,13 @@ class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
     complete {"Streaming endpoint"}
 
   } ~ path("file" / Segment) {fileId =>
+
+    logger.debug(s"Starting to stream file $fileId")
+
     onSuccess(sourceProvider.getFileLength(fileId)) {fileLength: Long =>
+
+      logger.debug(s"File $fileId length is $fileLength")
+
       optionalHeaderValue(extractRange) {rangeOption =>
 
         val range = rangeOption.getOrElse(ByteRange(0, fileLength - 1))
@@ -28,10 +34,9 @@ class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
           case FromOffset(offset) => (offset, fileLength - 1)
           case Suffix(length) => (fileLength - length, fileLength - 1)
         }
-
         val contentLength = endByte - startByte + 1
 
-        logger.debug(s"Byte range: $startByte-$endByte/$fileLength")
+        logger.debug(s"Byte range for file $fileId: $startByte-$endByte/$fileLength")
 
         complete(
           HttpResponse(
