@@ -10,8 +10,8 @@ trait S3Component {this: Configuration with ActorSystemComponent =>
 
   private lazy val s3Client: S3Client = {
 
-    val accessKey = config.getString("sisyphus.upload.s3.region.access-key-id")
-    val secretAccessKey = config.getString("sisyphus.upload.s3.region.secret-access-key")
+    val accessKey = config.getString("sisyphus.upload.s3.access-key-id")
+    val secretAccessKey = config.getString("sisyphus.upload.s3.secret-access-key")
 
     val awsCredentials = AWSCredentials(accessKey, secretAccessKey)
     new S3Client(awsCredentials, region)(actorSystem, actorMaterializer)

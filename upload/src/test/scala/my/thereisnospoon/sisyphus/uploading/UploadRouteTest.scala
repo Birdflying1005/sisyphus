@@ -112,7 +112,7 @@ class UploadRouteTest
       status shouldEqual StatusCodes.InternalServerError
     }
 
-    Thread.sleep(500)
+    Thread.sleep(1000)
 
     wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))
   }
@@ -136,7 +136,7 @@ class UploadRouteTest
       status shouldEqual StatusCodes.BadRequest
     }
 
-    Thread.sleep(500)
+    Thread.sleep(1000)
 
     Files.list(tempFolder).count() shouldBe 0
     wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))
@@ -161,7 +161,7 @@ class UploadRouteTest
       status shouldEqual StatusCodes.InternalServerError
     }
 
-    Thread.sleep(500)
+    Thread.sleep(1000)
 
     Files.list(tempFolder).count() shouldBe 0
     wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))

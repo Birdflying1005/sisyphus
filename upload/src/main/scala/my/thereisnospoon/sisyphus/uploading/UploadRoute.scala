@@ -152,17 +152,21 @@ class UploadRoute(
             videoProcessor ? ProcessVideo(path)
       }
 
-      val processingResult = Flow[Any].map {
-        case ProcessingResult(_, _) => Done
-        case _ => throw new RuntimeException("Couldn't process video")
+      val uploadThumbToS3 = Flow[Any].mapAsync(1) {
+
+        case ProcessingResult(pathToThumbnail, _) =>
+          val thumbFileName = pathToThumbnail.getFileName.toString
+          FileIO.fromPath(pathToThumbnail).runWith(s3SinkProvider.getSinkForS3(thumbFileName))
+        case _ =>
+          throw new RuntimeException("Couldn't process video")
       }
 
-      val zip2 = builder.add(Zip[Done, Any])
+      val zip2 = builder.add(Zip[Any, Any])
 
       hash ~> uniqueCheck ~> zip1.in1
                   localIO ~> zip1.in0
-                             zip1.out ~> processVideo ~> processingResult ~> zip2.in0
-                                                                     s3IO ~> zip2.in1
+                             zip1.out ~> processVideo ~> uploadThumbToS3 ~> zip2.in0
+                                                                    s3IO ~> zip2.in1
 
       SourceShape(zip2.out)
     })

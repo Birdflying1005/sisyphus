@@ -15,9 +15,9 @@ import scala.concurrent.Future
 
 class StreamingRouteTest extends FlatSpec with ScalatestRouteTest with Matchers {
 
-  val fileId = "file"
+  val fileId = "123"
   val fileLength = 100L
-  val getUrl = s"/file/$fileId"
+  val getUrl = s"/video/$fileId"
 
   val sourceProvider = {
     val provider = mock(classOf[SourceProvider])

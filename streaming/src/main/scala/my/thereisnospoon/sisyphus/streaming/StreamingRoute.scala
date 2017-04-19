@@ -18,13 +18,13 @@ class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
   val route: Route = pathSingleSlash {
     complete {"Streaming endpoint"}
 
-  } ~ path("file" / Segment) {fileId =>
+  } ~ path("video" / Segment) {videoId =>
 
-    logger.debug(s"Starting to stream file $fileId")
+    logger.debug(s"Starting to stream file $videoId")
 
-    onSuccess(sourceProvider.getFileLength(fileId)) {fileLength: Long =>
+    onSuccess(sourceProvider.getFileLength(videoId)) {fileLength: Long =>
 
-      logger.debug(s"File $fileId length is $fileLength")
+      logger.debug(s"File $videoId length is $fileLength")
 
       optionalHeaderValue(extractRange) {rangeOption =>
 
@@ -36,7 +36,7 @@ class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
         }
         val contentLength = endByte - startByte + 1
 
-        logger.debug(s"Byte range for file $fileId: $startByte-$endByte/$fileLength")
+        logger.debug(s"Byte range for file $videoId: $startByte-$endByte/$fileLength")
 
         complete(
           HttpResponse(
@@ -47,9 +47,24 @@ class StreamingRoute(sourceProvider: SourceProvider) extends LazyLogging {
             entity = HttpEntity(
               contentType = ContentType(MediaTypes.`video/webm`),
               contentLength = contentLength,
-              data = sourceProvider.source(fileId, (startByte, endByte)))
+              data = sourceProvider.source(videoId, (startByte, endByte)))
           ))
       }
+    }
+  } ~ path("thumb" / Segment) {videoId =>
+
+    logger.debug(s"Streaming thumbnail for $videoId")
+
+    val thumbnailName = s"$videoId.png"
+
+    onSuccess(sourceProvider.getFileLength(thumbnailName)) {thumbnailLength =>
+      complete(
+        HttpEntity(
+          ContentType(MediaTypes.`image/png`),
+          thumbnailLength,
+          sourceProvider.source(thumbnailName, (0,thumbnailLength ))
+        )
+      )
     }
   }
 }
