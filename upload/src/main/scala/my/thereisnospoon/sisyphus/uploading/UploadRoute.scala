@@ -3,8 +3,9 @@ package my.thereisnospoon.sisyphus.uploading
 import java.nio.file.{Files, Path, Paths}
 
 import akka.Done
-import akka.actor.ActorRef
-import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCodes}
+import akka.actor.{ActorRef, ActorSystem}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
@@ -26,7 +27,9 @@ class UploadRoute(
                    tempFilesFolder: String,
                    duplicationCheckService: DuplicationCheckService,
                    videoProcessor: ActorRef,
-                   s3SinkProvider: S3SinkProvider) {
+                   s3SinkProvider: S3SinkProvider,
+                   s3BucketUri: String) (implicit actorSystem: ActorSystem,
+                                         materializer: ActorMaterializer) {
 
   private val log = Logger(classOf[UploadRoute])
 
@@ -59,7 +62,7 @@ class UploadRoute(
 
             val processingFuture = processingSource.runWith(Sink.head)
             for (_ <- processingFuture.failed)
-              cleanUp(tempFileName)
+              cleanUp(tempFileName, needToCleanS3 = true)
 
             onComplete(processingFuture) {
               case Success(_) =>
@@ -107,14 +110,28 @@ class UploadRoute(
     }
   }
 
-  // ToDo: Move to io dispatcher
-  private def cleanUp(tempFileName: String) = {
+  private def cleanUp(tempFileName: String, needToCleanS3: Boolean = false) = {
 
-    //ToDo: Add cleanup of S3
+    cleanUpLocalFiles(tempFileName)
+    if (needToCleanS3) cleanUpS3(tempFileName)
+  }
+
+  private def cleanUpLocalFiles(tempFileName: String) = {
+
     val tempFilePath = Paths.get(tempFilesFolder, tempFileName)
     val thumbnailPath = Paths.get(tempFilePath.toString + ".png")
     Files.deleteIfExists(tempFilePath)
     Files.deleteIfExists(thumbnailPath)
+  }
+
+  private def cleanUpS3(key: String) = {
+    // ToDo: Add Authorization header
+    val videoDeletionRequest = HttpRequest(method = HttpMethods.DELETE, uri = s"$s3BucketUri/$key")
+    val thumbnailDeletionRequest = videoDeletionRequest.withUri(s"$s3BucketUri/$key.png")
+
+    val http = Http()
+    http.singleRequest(videoDeletionRequest)
+    http.singleRequest(thumbnailDeletionRequest)
   }
 
   private def processingGraph(

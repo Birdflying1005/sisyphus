@@ -9,13 +9,17 @@ import akka.stream.ActorMaterializer
 import akka.stream.alpakka.s3.scaladsl.MultipartUploadResult
 import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import com.typesafe.config.{Config, ConfigFactory}
 import my.thereisnospoon.sisyphus.uploading.processing.dupchek.{DuplicationCheckService, DuplicationCheckServiceComponent}
 import my.thereisnospoon.sisyphus.uploading.processing.video.VideoProcessingActor.{ProcessVideo, VideoProcessingError}
 import my.thereisnospoon.sisyphus.uploading.processing.video.VideoProcessingComponent
 import my.thereisnospoon.sisyphus.uploading.s3.{S3Component, S3SinkProvider, S3SinkStub}
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{FlatSpec, Matchers, OneInstancePerTest}
+import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, OneInstancePerTest}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -26,7 +30,8 @@ class UploadRouteTest
     with ScalatestRouteTest
     with Matchers
     with OneInstancePerTest
-    with MockitoSugar {
+    with MockitoSugar
+    with BeforeAndAfterAll {
 
   val tempFolder = Files.createTempDirectory("route_test")
   val testVideoPath = Paths.get("../test.webm")
@@ -41,6 +46,26 @@ class UploadRouteTest
       Map("filename" -> "some.webm")
     )
   )
+
+  val wireMockServer = {
+    val server = new WireMockServer(
+      wireMockConfig()
+        .dynamicPort()
+    )
+    server.start()
+    server
+  }
+
+  val wireMock = new WireMock("localhost", wireMockServer.port())
+  wireMock.register(
+    delete(urlMatching("/.*"))
+      .willReturn(
+        aResponse()
+          .withStatus(200)))
+
+  override def afterAll(): Unit = wireMockServer.stop()
+
+  val mockBucketUri = s"http://localhost:${wireMockServer.port()}"
 
   val appContext = new ActorSystemComponent with Configuration with DuplicationCheckServiceComponent
     with VideoProcessingComponent with S3Component with UploadRouteComponent {
@@ -60,6 +85,8 @@ class UploadRouteTest
       override def getSinkForS3(key: String): Sink[ByteString, Future[MultipartUploadResult]] =
         Sink.fromGraph(new S3SinkStub)
     }
+
+    override lazy val bucketUri: String = mockBucketUri
   }
 
   "/upload endpoint" should "receive file, return 200 response with fileId and clean up temp files after processing" in {
@@ -78,11 +105,16 @@ class UploadRouteTest
       new UploadRoute("/nonexistentFolder",
         appContext.duplicationCheckService,
         appContext.videoProcessingRouter,
-        appContext.s3SinkProvider)
+        appContext.s3SinkProvider,
+        appContext.bucketUri)
 
     Post("/upload", multipartForm) ~> erroneousRoute.route ~> check {
       status shouldEqual StatusCodes.InternalServerError
     }
+
+    Thread.sleep(500)
+
+    wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))
   }
 
   it should "return BadRequest response in case non-uniqueness of uploaded file and cleanup temp file" in {
@@ -97,13 +129,17 @@ class UploadRouteTest
       new UploadRoute(tempFolder.toString,
         duplicationCheckService,
         appContext.videoProcessingRouter,
-        appContext.s3SinkProvider)
+        appContext.s3SinkProvider,
+        appContext.bucketUri)
 
     Post("/upload", multipartForm) ~> erroneousRoute.route ~> check {
       status shouldEqual StatusCodes.BadRequest
     }
 
+    Thread.sleep(500)
+
     Files.list(tempFolder).count() shouldBe 0
+    wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))
   }
 
   it should "return 500 response code in case of error during video processing and cleanup temp file" in {
@@ -118,12 +154,16 @@ class UploadRouteTest
       new UploadRoute(tempFolder.toString,
         appContext.duplicationCheckService,
         system.actorOf(videoProcessorMockProps),
-        appContext.s3SinkProvider)
+        appContext.s3SinkProvider,
+        appContext.bucketUri)
 
     Post("/upload", multipartForm) ~> erroneousRoute.route ~> check {
       status shouldEqual StatusCodes.InternalServerError
     }
 
+    Thread.sleep(500)
+
     Files.list(tempFolder).count() shouldBe 0
+    wireMock.verifyThat(2, deleteRequestedFor(urlMatching("/.*")))
   }
 }

@@ -50,14 +50,14 @@ class S3SourceProvider(config: Config)(implicit actorSystem: ActorSystem, materi
       s"https://$bucketPath"
     else
       s"http://$bucketPath"
-
   }
 
-  //ToDo: Needs to replaced with HEAD request and getting `Content-Length` when using real S3
+  //ToDo: Needs to be replaced with HEAD request and getting `Content-Length` when using real S3
   override def getFileLength(fileId: String): Future[Long] = {
 
     logger.debug(s"Making request for length to $bucketUri/$fileId")
 
+    //ToDo: Authorization header needs to be added
     for (response <- Http().singleRequest(HttpRequest(HttpMethods.PATCH, s"$bucketUri/$fileId")))
       yield response.headers.find(_.is("contentlength")).get.value.toLong
   }

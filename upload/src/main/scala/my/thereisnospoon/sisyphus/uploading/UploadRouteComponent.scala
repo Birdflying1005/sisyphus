@@ -13,6 +13,6 @@ trait UploadRouteComponent {
 
   lazy val uploadRoute: UploadRoute = {
     val tempFolder = config.getString("sisyphus.upload.temp-files-folder")
-    new UploadRoute(tempFolder, duplicationCheckService, videoProcessingRouter, s3SinkProvider)
+    new UploadRoute(tempFolder, duplicationCheckService, videoProcessingRouter, s3SinkProvider, bucketUri)
   }
 }
