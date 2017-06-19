@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package my.tins;
+
+message VideoUploaded {
+    string s3_id = 1;
+    string thumbnail_id = 2;
+    int32 duration = 3;
+}

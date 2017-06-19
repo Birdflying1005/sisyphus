@@ -1,5 +1,6 @@
 package my.thereisnospoon.sisyphus.uploading.s3
 
+import akka.stream.alpakka.s3.{MemoryBufferType, S3Settings}
 import akka.stream.alpakka.s3.auth.AWSCredentials
 import akka.stream.alpakka.s3.scaladsl.S3Client
 import my.thereisnospoon.sisyphus.uploading.{ActorSystemComponent, Configuration}
@@ -14,7 +15,8 @@ trait S3Component {this: Configuration with ActorSystemComponent =>
     val secretAccessKey = config.getString("sisyphus.upload.s3.secret-access-key")
 
     val awsCredentials = AWSCredentials(accessKey, secretAccessKey)
-    new S3Client(awsCredentials, region)(actorSystem, actorMaterializer)
+    val settings = new S3Settings(MemoryBufferType, "", None, awsCredentials, region, false)
+    new S3Client(settings)(actorSystem, actorMaterializer)
   }
 
   lazy val s3SinkProvider: S3SinkProvider = {

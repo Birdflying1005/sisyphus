@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.ByteRange
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest}
 import akka.stream.ActorMaterializer
+import akka.stream.alpakka.s3.{MemoryBufferType, S3Settings}
 import akka.stream.alpakka.s3.auth.AWSCredentials
 import akka.stream.alpakka.s3.scaladsl.S3Client
 import akka.stream.scaladsl.Source
@@ -26,7 +27,8 @@ class S3SourceProvider(config: Config)(implicit actorSystem: ActorSystem, materi
       AWSCredentials(accessKeyId = s3Config.getString("access-key-id"),
                      secretAccessKey = s3Config.getString("secret-access-key"))
 
-    new S3Client(credentials, s3Config.getString("region"))
+    val settings = new S3Settings(MemoryBufferType, "", None, credentials, s3Config.getString("region"), false)
+    new S3Client(settings)
   }
 
   private val bucket = config.getString("sisyphus.streaming.s3.bucket")
