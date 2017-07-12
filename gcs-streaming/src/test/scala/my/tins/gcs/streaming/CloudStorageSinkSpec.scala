@@ -16,7 +16,7 @@ import org.mockito.{Matchers => matchers}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Failure
 
@@ -25,13 +25,26 @@ class CloudStorageSinkSpec extends FlatSpec with MockitoSugar with BeforeAndAfte
   implicit var actorSystem: ActorSystem = _
   implicit var materializer: ActorMaterializer = _
 
-  val storageService = mock[Storage]
-  val blobInfo = mock[BlobInfo]
-  val blob = mock[Blob]
-  val channel = mock[WriteChannel]
+  trait Fixture {
+    val storageService = mock[Storage]
+    val blobInfo = mock[BlobInfo]
+    val blob = mock[Blob]
+    val channel = mock[WriteChannel]
 
-  when(storageService.create(blobInfo)).thenReturn(blob)
-  when(blob.writer()).thenReturn(channel)
+    when(storageService.create(blobInfo)).thenReturn(blob)
+    when(blob.writer()).thenReturn(channel)
+
+    def startStream() = TestSource.probe[ByteString]
+      .toMat(new CloudStorageSink(blobInfo, storageService))(Keep.both)
+      .run()
+  }
+
+  private def assertFailureOfFuture(future: Future[_]) = {
+
+    val processingResult = Await.ready(future, 5.seconds).value
+    processingResult shouldBe a [Some[_]]
+    processingResult.get shouldBe a [Failure[_]]
+  }
 
   override def beforeAll(): Unit = {
 
@@ -43,7 +56,7 @@ class CloudStorageSinkSpec extends FlatSpec with MockitoSugar with BeforeAndAfte
 
   behavior of "CloudStorageSink"
 
-  it should "successfully consume data and write it to NIO channel" in {
+  it should "successfully consume data and write it to NIO channel" in new Fixture {
 
     val totalBytesWritten = new AtomicInteger(0)
 
@@ -53,8 +66,7 @@ class CloudStorageSinkSpec extends FlatSpec with MockitoSugar with BeforeAndAfte
         totalBytesWritten.addAndGet(bytesWritten); bytesWritten
       })
 
-    val (upstream, doneToggle) =
-      TestSource.probe[ByteString].toMat(new CloudStorageSink(blobInfo, storageService))(Keep.both).run()
+    val (upstream, doneToggle) = startStream()
 
     upstream.sendNext(ByteString(new Array[Byte](10)))
     upstream.sendNext(ByteString(new Array[Byte](9)))
@@ -65,15 +77,34 @@ class CloudStorageSinkSpec extends FlatSpec with MockitoSugar with BeforeAndAfte
     totalBytesWritten.get() shouldEqual 10 + 9
   }
 
-  it should "fail materialized Future in case of upstream error" in {
+  it should "fail materialized Future in case of upstream error" in new Fixture {
 
-    val (upstream, doneToggle) =
-      TestSource.probe[ByteString].toMat(new CloudStorageSink(blobInfo, storageService))(Keep.both).run()
+    val (upstream, doneToggle) = startStream()
 
     upstream.sendError(new RuntimeException)
 
-    val processingResult = Await.ready(doneToggle, 5.seconds).value
-    processingResult shouldBe a [Some[_]]
-    processingResult.get shouldBe a [Failure[_]]
+    assertFailureOfFuture(doneToggle)
+  }
+
+  it should "fail materialized Future in case of error during data write" in new Fixture {
+
+    reset(channel)
+    when(channel.write(matchers.any(classOf[ByteBuffer]))).thenThrow(classOf[RuntimeException])
+
+    val (upstream, doneToggle) = startStream()
+
+    upstream.sendNext(ByteString(new Array[Byte](10)))
+
+    assertFailureOfFuture(doneToggle)
+  }
+
+  it should "fail materialized Future in case of error during channel opening" in new Fixture {
+
+    reset(blob)
+    when(blob.writer()).thenThrow(classOf[RuntimeException])
+
+    val (upstream, doneToggle) = startStream()
+
+    assertFailureOfFuture(doneToggle)
   }
 }
